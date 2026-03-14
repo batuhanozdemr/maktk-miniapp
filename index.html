@@ -3,116 +3,1545 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>MAKTK Pro</title>
+<title>MAKTK</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #080c10; --surface: #0d1117; --surface2: #131920;
-  --border: #1c2530; --text: #c9d1d9; --text-dim: #6e7f8f;
-  --green: #00d084; --red: #ff4757; --blue: #58a6ff; --gold: #e3b341;
+  --bg:        #080c10;
+  --surface:   #0d1117;
+  --surface2:  #131920;
+  --border:    #1c2530;
+  --border2:   #243040;
+  --text:      #c9d1d9;
+  --text-dim:  #6e7f8f;
+  --text-bright: #e6edf3;
+  --green:     #00d084;
+  --green-dim: rgba(0,208,132,0.12);
+  --red:       #ff4757;
+  --red-dim:   rgba(255,71,87,0.12);
+  --blue:      #58a6ff;
+  --blue-dim:  rgba(88,166,255,0.1);
+  --gold:      #e3b341;
+  --gold-dim:  rgba(227,179,65,0.1);
+  --mono:      'IBM Plex Mono', monospace;
+  --sans:      'IBM Plex Sans', sans-serif;
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-.header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px; display: flex; justify-content: space-between; align-items: center; }
-.price { font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 600; }
-.content { flex: 1; overflow-y: auto; padding: 15px; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-.card-title { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 10px; text-transform: uppercase; }
-.data-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
-.nav { background: var(--surface); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 10px 0; }
-.nav-btn { background: none; border: none; color: var(--text-dim); font-size: 10px; font-family: 'IBM Plex Mono'; cursor: pointer; }
-.nav-btn.active { color: var(--green); }
-#status-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(0,208,132,0.1); color: var(--green); }
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-badge {
+  width: 28px; height: 28px;
+  background: var(--green);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: #000;
+  letter-spacing: -0.5px;
+}
+
+.logo-text {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-bright);
+  letter-spacing: 1px;
+}
+
+.logo-sub {
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
+.header-right {
+  text-align: right;
+}
+
+.live-price {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-bright);
+  line-height: 1;
+}
+
+.live-price.blink {
+  animation: priceBlink 0.3s ease;
+}
+
+@keyframes priceBlink {
+  0% { color: var(--text-bright); }
+  50% { color: var(--green); }
+  100% { color: var(--text-bright); }
+}
+
+.price-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.change-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.change-badge.up   { background: var(--green-dim); color: var(--green); }
+.change-badge.down { background: var(--red-dim);   color: var(--red);   }
+
+.borsa-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+.borsa-dot.acik  { background: var(--green); }
+.borsa-dot.kapali { background: var(--red); animation: none; }
+
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:0.5; transform:scale(0.8); }
+}
+
+/* ── TICKER ── */
+.ticker {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 5px 0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.ticker-inner {
+  display: flex;
+  gap: 24px;
+  animation: tickerScroll 20s linear infinite;
+  white-space: nowrap;
+}
+
+.ticker-item {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.ticker-item span { color: var(--green); margin-left: 4px; }
+
+@keyframes tickerScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ── NAV ── */
+.nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav::-webkit-scrollbar { display: none; }
+
+.nav-item {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+
+.nav-item.active {
+  color: var(--green);
+  border-bottom-color: var(--green);
+}
+
+/* ── CONTENT ── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+.page { display: none; padding: 12px; }
+.page.active { display: block; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.card-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.card-badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.card-body { padding: 12px; }
+
+/* ── CONFLUENCE ── */
+.conf-layout {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.conf-gauge {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.conf-gauge svg { width: 80px; height: 80px; transform: rotate(-90deg); }
+
+.conf-gauge-bg {
+  fill: none;
+  stroke: var(--border2);
+  stroke-width: 6;
+}
+
+.conf-gauge-fill {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 188;
+  stroke-dashoffset: 188;
+  transition: stroke-dashoffset 1s ease, stroke 0.3s;
+}
+
+.conf-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.conf-num {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.conf-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+.conf-signals { }
+
+.conf-verdict {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.signal-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.signal-row:last-child { border: none; }
+.signal-row.active { color: var(--text); }
+.signal-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── TF GRID ── */
+.tf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.tf-cell {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.tf-cell::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+}
+
+.tf-cell.al::before  { background: var(--green); }
+.tf-cell.sat::before { background: var(--red); }
+.tf-cell.notr::before { background: var(--text-dim); }
+
+.tf-period {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.tf-signal {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.tf-rsi {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* ── RSI GAUGE ── */
+.rsi-display {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.rsi-big {
+  font-family: var(--mono);
+  font-size: 42px;
+  font-weight: 300;
+  letter-spacing: -2px;
+  line-height: 1;
+}
+
+.rsi-track {
+  position: relative;
+  height: 4px;
+  background: var(--border2);
+  border-radius: 2px;
+  margin: 10px 0 6px;
+}
+
+.rsi-fill {
+  position: absolute;
+  left: 0; top: 0; height: 100%;
+  border-radius: 2px;
+  transition: width 0.8s ease;
+}
+
+.rsi-needle {
+  position: absolute;
+  top: -4px;
+  width: 2px; height: 12px;
+  background: white;
+  border-radius: 1px;
+  transform: translateX(-50%);
+  transition: left 0.8s ease;
+}
+
+.rsi-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text-dim);
+}
+
+.rsi-status {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-align: center;
+  padding: 4px 10px;
+  border-radius: 3px;
+  display: inline-block;
+  margin: 6px auto 0;
+}
+
+/* ── DATA ROW ── */
+.data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.data-row:last-child { border: none; }
+
+.data-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
+.data-val {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ── LEVELS ── */
+.level-item {
+  display: flex;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+.level-item:last-child { border: none; }
+
+.level-line {
+  width: 3px;
+  height: 36px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.level-info { flex: 1; }
+
+.level-type {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.level-price {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-bright);
+  margin: 1px 0;
+}
+
+.level-sub {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.level-prob { text-align: right; }
+
+.prob-ring {
+  width: 38px; height: 38px;
+  margin-left: auto;
+}
+
+/* ── PATTERN ── */
+.pattern-seq {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 10px 0;
+  justify-content: center;
+}
+
+.seq-arrow {
+  width: 30px; height: 30px;
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.seq-arrow.u { background: var(--green-dim); color: var(--green); }
+.seq-arrow.d { background: var(--red-dim);   color: var(--red);   }
+
+.seq-divider {
+  color: var(--text-dim);
+  font-size: 10px;
+}
+
+.prob-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.prob-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  width: 55px;
+  flex-shrink: 0;
+}
+
+.prob-track {
+  flex: 1;
+  height: 5px;
+  background: var(--border2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.prob-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s ease;
+}
+
+.prob-pct {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  width: 32px;
+  text-align: right;
+}
+
+/* ── SENARYO ── */
+.input-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.terminal-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 9px 12px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-bright);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.terminal-input:focus { border-color: var(--green); }
+.terminal-input::placeholder { color: var(--text-dim); }
+
+.run-btn {
+  background: var(--green);
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  padding: 9px 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.run-btn:active { opacity: 0.8; }
+
+/* ── BILDIRIMLER ── */
+.notif-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { opacity:0; transform:translateY(-6px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.notif-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.notif-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-bright);
+  margin-bottom: 2px;
+}
+
+.notif-body {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.notif-time {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-shrink: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bnav-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 8px 4px 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: opacity 0.15s;
+}
+
+.bnav-icon { font-size: 18px; line-height: 1; }
+
+.bnav-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.bnav-btn.active .bnav-label { color: var(--green); }
+.bnav-btn.active .bnav-icon { filter: drop-shadow(0 0 4px var(--green)); }
+
+/* ── LOADING ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--border) 25%, var(--border2) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+  height: 12px;
+  margin: 4px 0;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.disclaimer {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 8px;
+  letter-spacing: 0.3px;
+  opacity: 0.6;
+}
+
+/* ── FADE IN ── */
+.fade-in {
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(4px); }
+  to   { opacity:1; transform:translateY(0); }
+}
 </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <div class="header">
-  <div>
-    <div style="font-weight: 600; color: white;">MAKTK.IS</div>
-    <div style="font-size: 10px; color: var(--text-dim);">BORSA İSTANBUL</div>
-  </div>
-  <div style="text-align: right;">
-    <div class="price" id="price">...</div>
-    <div id="status-badge">CANLI VERİ</div>
-  </div>
-</div>
-
-<div class="content">
-  <div class="card">
-    <div class="card-title">HIZLI ANALİZ (GÜNLÜK)</div>
-    <div id="main-data">
-       <div style="text-align:center; padding: 20px; color: var(--text-dim);">Veriler yükleniyor, lütfen bekleyin...</div>
+  <div class="logo">
+    <div class="logo-badge">MK</div>
+    <div>
+      <div class="logo-text">MAKTK.IS</div>
+      <div class="logo-sub">BORSA İSTANBUL</div>
     </div>
   </div>
-
-  <div class="card">
-    <div class="card-title">TEKNİK GÖSTERGELER</div>
-    <div id="tech-data">
-        <div class="data-row"><span>RSI (14)</span><span id="rsi-val">...</span></div>
-        <div class="data-row"><span>MACD</span><span id="macd-val">...</span></div>
-        <div class="data-row"><span>MA (20)</span><span id="ma20-val">...</span></div>
+  <div class="header-right">
+    <div class="live-price" id="hdr-price">—.—</div>
+    <div class="price-meta">
+      <span class="change-badge up" id="hdr-change">—</span>
+      <div class="borsa-dot" id="borsa-dot"></div>
     </div>
   </div>
 </div>
 
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-inner" id="ticker-inner">
+    <span class="ticker-item">RSI <span id="tk-rsi">—</span></span>
+    <span class="ticker-item">MACD <span id="tk-macd">—</span></span>
+    <span class="ticker-item">MA20 <span id="tk-ma20">—</span></span>
+    <span class="ticker-item">MA50 <span id="tk-ma50">—</span></span>
+    <span class="ticker-item">HAClM <span id="tk-hacim">—</span></span>
+    <span class="ticker-item">BB ÜST <span id="tk-bbu">—</span></span>
+    <span class="ticker-item">BB ALT <span id="tk-bbl">—</span></span>
+    <!-- duplicate for seamless loop -->
+    <span class="ticker-item">RSI <span>—</span></span>
+    <span class="ticker-item">MACD <span>—</span></span>
+    <span class="ticker-item">MA20 <span>—</span></span>
+    <span class="ticker-item">MA50 <span>—</span></span>
+    <span class="ticker-item">HAClM <span>—</span></span>
+    <span class="ticker-item">BB ÜST <span>—</span></span>
+    <span class="ticker-item">BB ALT <span>—</span></span>
+  </div>
+</div>
+
+<!-- NAV -->
 <div class="nav">
-  <button class="nav-btn active">PANEL</button>
-  <button class="nav-btn">İNDİKATÖR</button>
-  <button class="nav-btn">SEVİYE</button>
+  <button class="nav-item active" data-page="panel">PANEL</button>
+  <button class="nav-item" data-page="indiktor">İNDİKATÖR</button>
+  <button class="nav-item" data-page="seviye">SEVİYE</button>
+  <button class="nav-item" data-page="pattern">PATTERN</button>
+  <button class="nav-item" data-page="senaryo">SENARYO</button>
+  <button class="nav-item" data-page="bildirim">BİLDİRİM</button>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- PANEL -->
+  <div class="page active fade-in" id="page-panel">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">CONFLUENCE SKORU</span>
+        <span class="card-badge" id="conf-badge" style="background:var(--green-dim);color:var(--green)">HESAPLANIYOR</span>
+      </div>
+      <div class="card-body">
+        <div class="conf-layout">
+          <div class="conf-gauge">
+            <svg viewBox="0 0 80 80">
+              <circle class="conf-gauge-bg" cx="40" cy="40" r="30"/>
+              <circle class="conf-gauge-fill" id="conf-arc" cx="40" cy="40" r="30" stroke="var(--green)"/>
+            </svg>
+            <div class="conf-center">
+              <div class="conf-num" id="conf-num" style="color:var(--green)">0</div>
+              <div class="conf-label">SKOR</div>
+            </div>
+          </div>
+          <div class="conf-signals" id="conf-signals">
+            <div class="skeleton" style="width:100%;height:10px;margin-bottom:6px"></div>
+            <div class="skeleton" style="width:80%;height:10px;margin-bottom:6px"></div>
+            <div class="skeleton" style="width:90%;height:10px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">ZAMAN DİLİMLERİ</span>
+      </div>
+      <div class="card-body" style="padding:10px">
+        <div class="tf-grid" id="tf-grid">
+          <div class="skeleton" style="height:64px;border-radius:5px"></div>
+          <div class="skeleton" style="height:64px;border-radius:5px"></div>
+          <div class="skeleton" style="height:64px;border-radius:5px"></div>
+          <div class="skeleton" style="height:64px;border-radius:5px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">⚠ Yatırım tavsiyesi değildir. Veriler bilgilendirme amaçlıdır.</div>
+  </div>
+
+  <!-- İNDİKATÖR -->
+  <div class="page fade-in" id="page-indiktor">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">RSI — 14 PERİYOT</span>
+        <span class="card-badge" id="rsi-badge" style="background:var(--blue-dim);color:var(--blue)">—</span>
+      </div>
+      <div class="card-body" style="text-align:center">
+        <div class="rsi-big" id="rsi-val" style="color:var(--text-bright)">—</div>
+        <div style="padding:0 4px">
+          <div class="rsi-track">
+            <div class="rsi-fill" id="rsi-fill"></div>
+            <div class="rsi-needle" id="rsi-needle"></div>
+          </div>
+          <div class="rsi-labels">
+            <span>0</span>
+            <span style="color:var(--green)">35</span>
+            <span>50</span>
+            <span style="color:var(--red)">65</span>
+            <span>100</span>
+          </div>
+        </div>
+        <div class="rsi-status" id="rsi-status">YÜKLENIYOR</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">MACD</span>
+        <span class="card-badge" id="macd-badge" style="background:var(--blue-dim);color:var(--blue)">—</span>
+      </div>
+      <div class="card-body" id="macd-body">
+        <div class="skeleton" style="width:100%;height:10px;margin-bottom:8px"></div>
+        <div class="skeleton" style="width:70%;height:10px"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">HAREKETLİ ORTALAMA & BOLLINGER</span>
+      </div>
+      <div class="card-body" id="ma-body">
+        <div class="skeleton" style="width:100%;height:10px;margin-bottom:8px"></div>
+        <div class="skeleton" style="width:80%;height:10px"></div>
+      </div>
+    </div>
+
+    <div class="disclaimer">⚠ Yatırım tavsiyesi değildir.</div>
+  </div>
+
+  <!-- SEVİYE -->
+  <div class="page fade-in" id="page-seviye">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">DESTEK / DİRENÇ SEVİYELERİ</span>
+        <span class="card-badge" style="background:var(--gold-dim);color:var(--gold)">2 YIL</span>
+      </div>
+      <div class="card-body" id="seviye-body">
+        <div class="skeleton" style="height:50px;margin-bottom:8px;border-radius:4px"></div>
+        <div class="skeleton" style="height:50px;margin-bottom:8px;border-radius:4px"></div>
+        <div class="skeleton" style="height:50px;border-radius:4px"></div>
+      </div>
+    </div>
+    <div class="disclaimer">⚠ Yatırım tavsiyesi değildir.</div>
+  </div>
+
+  <!-- PATTERN -->
+  <div class="page fade-in" id="page-pattern">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">FİYAT DAVRANIŞ ÖRÜNTÜSÜ</span>
+        <span class="card-badge" id="pat-badge" style="background:var(--gold-dim);color:var(--gold)">—</span>
+      </div>
+      <div class="card-body" id="pattern-body">
+        <div class="skeleton" style="height:80px;border-radius:4px"></div>
+      </div>
+    </div>
+    <div class="disclaimer">⚠ Yatırım tavsiyesi değildir.</div>
+  </div>
+
+  <!-- SENARYO -->
+  <div class="page fade-in" id="page-senaryo">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">SENARYO ANALİZİ</span>
+      </div>
+      <div class="card-body">
+        <p style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:10px;letter-spacing:0.3px;">
+          Hedef fiyat gir → hacim gücü + geçmiş istatistik analizi
+        </p>
+        <div class="input-group">
+          <input class="terminal-input" id="sen-input" type="number" placeholder="Örn: 95.50" step="0.01">
+          <button class="run-btn" onclick="senaryoHesapla()">► RUN</button>
+        </div>
+        <div id="sen-result"></div>
+      </div>
+    </div>
+    <div class="disclaimer">⚠ Yatırım tavsiyesi değildir.</div>
+  </div>
+
+  <!-- BİLDİRİM -->
+  <div class="page fade-in" id="page-bildirim">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">CANLI BİLDİRİMLER</span>
+        <span class="card-badge" style="background:var(--green-dim);color:var(--green)" id="notif-count">0 YENİ</span>
+      </div>
+      <div class="card-body" style="padding:10px" id="notif-list">
+        <p style="font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:center;padding:20px 0;">
+          Henüz bildirim yok.<br>Sinyaller burada görünecek.
+        </p>
+      </div>
+    </div>
+    <div class="disclaimer">⚠ Yatırım tavsiyesi değildir.</div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="bnav-btn active" data-page="panel">
+    <span class="bnav-icon">📊</span>
+    <span class="bnav-label">Panel</span>
+  </button>
+  <button class="bnav-btn" data-page="indiktor">
+    <span class="bnav-icon">📈</span>
+    <span class="bnav-label">İndik.</span>
+  </button>
+  <button class="bnav-btn" data-page="seviye">
+    <span class="bnav-icon">🎯</span>
+    <span class="bnav-label">Seviye</span>
+  </button>
+  <button class="bnav-btn" data-page="pattern">
+    <span class="bnav-icon">🔁</span>
+    <span class="bnav-label">Pattern</span>
+  </button>
+  <button class="bnav-btn" data-page="senaryo">
+    <span class="bnav-icon">🔮</span>
+    <span class="bnav-label">Senaryo</span>
+  </button>
+  <button class="bnav-btn" data-page="bildirim">
+    <span class="bnav-icon">🔔</span>
+    <span class="bnav-label">Bildirim</span>
+  </button>
 </div>
 
 <script>
-async function getBorsaData() {
-    const symbol = "MAKTK.IS";
-    // Bu yöntem en kararlı olanıdır (Yedekli Proxy)
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1mo`;
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&cacheBust=${Date.now()}`;
+// ── Telegram WebApp ──
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
 
+// ── Veri yapısı ──
+const D = {
+  fiyat: null, onceki: null,
+  hacim: null, hacim_ort: null,
+  rsi: null, macd: null, macd_sig: null, macd_hist: null,
+  ma20: null, ma50: null, bb_u: null, bb_l: null,
+  conf_al: 0, conf_sat: 0,
+  borsa_acik: false,
+  tf: [], seviyeler: [],
+  pattern: { dizi:[], sayi:0, yuk:50, as:50, yuk_ort:0, as_ort:0 },
+  yuklendi: false,
+};
+
+const bildirimler = [];
+
+// ── Yahoo Finance — çoklu proxy (biri çalışmazsa diğerini dener) ──
+const PROXIES = [
+  url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://thingproxy.freeboard.io/fetch/${url}`,
+];
+
+async function veriCek(interval, range) {
+  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/MAKTK.IS?interval=${interval}&range=${range}&events=history&includePrePost=false`;
+
+  for (let i = 0; i < PROXIES.length; i++) {
     try {
-        const response = await fetch(proxyUrl);
-        const data = await response.json();
-        const result = JSON.parse(data.contents).chart.result[0];
-        
-        const price = result.meta.regularMarketPrice;
-        const prevClose = result.meta.chartPreviousClose;
-        const change = ((price - prevClose) / prevClose * 100).toFixed(2);
-        
-        document.getElementById('price').innerText = price.toFixed(2) + " ₺";
-        document.getElementById('price').style.color = change >= 0 ? "var(--green)" : "var(--red)";
-        
-        const closes = result.indicators.quote[0].close;
-        const lastRSI = calculateRSI(closes).toFixed(2);
-        
-        document.getElementById('main-data').innerHTML = `
-            <div class="data-row"><span>Günlük Değişim</span><span style="color:${change >= 0 ? 'var(--green)' : 'var(--red)'}">${change >= 0 ? '+' : ''}${change}%</span></div>
-            <div class="data-row"><span>En Yüksek</span><span>${result.meta.dayHigh} ₺</span></div>
-            <div class="data-row"><span>En Düşük</span><span>${result.meta.dayLow} ₺</span></div>
-            <div class="data-row"><span>Hacim</span><span>${(result.meta.regularMarketVolume / 1000000).toFixed(2)}M</span></div>
-        `;
-        
-        document.getElementById('rsi-val').innerText = lastRSI;
-        document.getElementById('rsi-val').style.color = lastRSI > 70 ? "var(--red)" : lastRSI < 30 ? "var(--green)" : "var(--blue)";
-        document.getElementById('ma20-val').innerText = (closes.slice(-20).reduce((a, b) => a + b) / 20).toFixed(2) + " ₺";
-        
-    } catch (error) {
-        document.getElementById('main-data').innerHTML = `<div style="color:var(--red); text-align:center;">Bağlantı Hatası: Lütfen 10 saniye sonra sayfayı yenileyin.</div>`;
+      const proxyUrl = PROXIES[i](yahooUrl);
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), 8000); // 8sn timeout
+      const r    = await fetch(proxyUrl, { signal: ctrl.signal });
+      clearTimeout(tid);
+
+      let j;
+      // allorigins wrapper formatı farklı
+      if (proxyUrl.includes('allorigins')) {
+        const w = await r.json();
+        j = JSON.parse(w.contents);
+      } else {
+        j = await r.json();
+      }
+
+      if (!j?.chart?.result?.[0]) continue;
+
+      const res    = j.chart.result[0];
+      const quotes = res.indicators.quote[0];
+      return {
+        meta:       res.meta,
+        closes:     (quotes.close  || []).map(v => v == null ? null : +v),
+        highs:      (quotes.high   || []).map(v => v == null ? null : +v),
+        lows:       (quotes.low    || []).map(v => v == null ? null : +v),
+        volumes:    (quotes.volume || []).map(v => v == null ? null : +v),
+        timestamps: res.timestamp || [],
+      };
+    } catch(e) {
+      console.warn(`Proxy ${i+1} başarısız:`, e.message);
     }
+  }
+
+  console.error('Tüm proxy\'ler başarısız oldu');
+  return null;
 }
 
-function calculateRSI(data, period = 14) {
-    let gains = 0, losses = 0;
-    for (let i = data.length - period; i < data.length; i++) {
-        let diff = data[i] - data[i - 1];
-        if (diff > 0) gains += diff; else losses -= diff;
-    }
-    let rs = gains / losses;
-    return 100 - (100 / (1 + rs));
+function hesaplaRSI(closes, period=14) {
+  if (closes.length < period + 1) return null;
+  let gains = 0, losses = 0;
+  for (let i = closes.length - period; i < closes.length; i++) {
+    const diff = closes[i] - closes[i-1];
+    if (diff > 0) gains += diff; else losses -= diff;
+  }
+  const rs = gains / (losses || 0.001);
+  return 100 - (100 / (1 + rs));
 }
 
-getBorsaData();
-setInterval(getBorsaData, 30000);
+function hesaplaSMA(arr, period) {
+  const valid = arr.filter(v => v != null);
+  if (valid.length < period) return null;
+  const slice = valid.slice(-period);
+  return slice.reduce((a,b) => a+b, 0) / period;
+}
+
+function hesaplaMACD(closes) {
+  if (closes.length < 26) return { macd: null, signal: null, hist: null };
+  function ema(data, p) {
+    const k = 2/(p+1);
+    let e = data[0];
+    for (let i=1;i<data.length;i++) e = data[i]*k + e*(1-k);
+    return e;
+  }
+  const ema12 = ema(closes.slice(-26), 12);
+  const ema26 = ema(closes.slice(-26), 26);
+  const macd  = ema12 - ema26;
+  const signal = macd * 0.9; // basit yaklaşım
+  return { macd, signal, hist: macd - signal };
+}
+
+function hesaplaBollinger(closes, period=20) {
+  if (closes.length < period) return { upper: null, lower: null };
+  const slice = closes.slice(-period).filter(v => v != null);
+  const mean  = slice.reduce((a,b)=>a+b,0)/slice.length;
+  const std   = Math.sqrt(slice.reduce((a,b)=>a+(b-mean)**2,0)/slice.length);
+  return { upper: mean + 2*std, lower: mean - 2*std, mid: mean };
+}
+
+function borsaAcikMi() {
+  const now = new Date();
+  const tr  = new Date(now.toLocaleString("en-US", {timeZone:"Europe/Istanbul"}));
+  const gun = tr.getDay(); // 0=Pazar, 6=Cumartesi
+  if (gun === 0 || gun === 6) return false;
+  const saat = tr.getHours() * 60 + tr.getMinutes();
+  return saat >= 600 && saat <= 1095; // 10:00 - 18:15
+}
+
+async function gercekVeriYukle() {
+  // Yükleniyor göster
+  document.getElementById('hdr-price').textContent = 'Yükleniyor...';
+  document.getElementById('hdr-change').textContent = '...';
+
+  // Günlük veri (1 yıl)
+  const gunluk = await veriCek('1d', '1y');
+  if (!gunluk) {
+    document.getElementById('hdr-price').textContent = 'Veri Hatası';
+    document.getElementById('hdr-change').textContent = '↻ 30sn sonra tekrar...';
+    setTimeout(gercekVeriYukle, 30000);
+    return;
+  }
+
+  const closes  = gunluk.closes.filter(v => v != null);
+  const volumes = gunluk.volumes.filter(v => v != null);
+
+  D.fiyat   = closes[closes.length - 1];
+  D.onceki  = closes[closes.length - 2];
+  D.hacim   = volumes[volumes.length - 1];
+  D.hacim_ort = hesaplaSMA(volumes, 20);
+
+  // İndikatörler
+  D.rsi = hesaplaRSI(closes);
+  const macdR = hesaplaMACD(closes);
+  D.macd = macdR.macd; D.macd_sig = macdR.signal; D.macd_hist = macdR.hist;
+  D.ma20 = hesaplaSMA(closes, 20);
+  D.ma50 = hesaplaSMA(closes, 50);
+  const bb = hesaplaBollinger(closes);
+  D.bb_u = bb.upper; D.bb_l = bb.lower;
+  D.borsa_acik = borsaAcikMi();
+
+  // Zaman dilimleri
+  const tfVeri = [
+    { ad:"Günlük",    interval:"1d",  range:"6mo"  },
+    { ad:"4 Saatlik", interval:"1h",  range:"30d"  },
+    { ad:"1 Saatlik", interval:"1h",  range:"7d"   },
+    { ad:"15 Dak.",   interval:"15m", range:"5d"   },
+  ];
+
+  D.tf = [];
+  for (const tv of tfVeri) {
+    try {
+      const vd = await veriCek(tv.interval, tv.range);
+      if (!vd) continue;
+      const c = vd.closes.filter(v => v != null);
+      const rsi = hesaplaRSI(c);
+      const ma20 = hesaplaSMA(c, 20);
+      const ma50 = hesaplaSMA(c, Math.min(50, c.length - 1));
+      const macdTf = hesaplaMACD(c);
+      const al  = (rsi && rsi < 35) || (macdTf.macd && macdTf.macd > macdTf.signal) ? 1 : 0;
+      const sat = (rsi && rsi > 65) || (macdTf.macd && macdTf.macd < macdTf.signal) ? 1 : 0;
+      D.tf.push({
+        ad: tv.ad,
+        rsi: rsi || 50,
+        sinyal: al > sat ? "AL" : sat > al ? "SAT" : "NÖTR",
+        trend: (ma20 && ma50) ? (ma20 > ma50 ? "YÜKSELİŞ" : "DÜŞÜŞ") : "YATAY",
+      });
+    } catch(e) { }
+  }
+
+  // Confluence hesapla
+  D.conf_al  = D.tf.filter(t => t.sinyal === "AL").length;
+  D.conf_sat = D.tf.filter(t => t.sinyal === "SAT").length;
+  if (D.rsi && D.rsi < 35) D.conf_al++;
+  if (D.rsi && D.rsi > 65) D.conf_sat++;
+
+  // Seviyeler (pivot noktalar)
+  D.seviyeler = [];
+  const c = closes;
+  for (let i = 2; i < c.length - 2; i++) {
+    if (c[i] > c[i-1] && c[i] > c[i-2] && c[i] > c[i+1] && c[i] > c[i+2]) {
+      D.seviyeler.push({ tip:"DİRENÇ", fiyat:c[i], test:1, yuk:35, as:65,
+        uzak: (c[i]-D.fiyat)/D.fiyat*100 });
+    }
+    if (c[i] < c[i-1] && c[i] < c[i-2] && c[i] < c[i+1] && c[i] < c[i+2]) {
+      D.seviyeler.push({ tip:"DESTEK", fiyat:c[i], test:1, yuk:68, as:32,
+        uzak: (c[i]-D.fiyat)/D.fiyat*100 });
+    }
+  }
+  // Güncel fiyata en yakın 4 seviye
+  D.seviyeler = D.seviyeler
+    .sort((a,b) => Math.abs(a.uzak) - Math.abs(b.uzak))
+    .slice(0, 4);
+
+  // Pattern (son 3 günün hareketi)
+  const son3 = closes.slice(-4);
+  D.pattern.dizi = [
+    son3[1] > son3[0] ? "U" : "D",
+    son3[2] > son3[1] ? "U" : "D",
+    son3[3] > son3[2] ? "U" : "D",
+  ];
+
+  D.yuklendi = true;
+  renderHepsi();
+
+  // Her 60 saniyede güncelle
+  setInterval(gercekVeriYukle, 60000);
+}
+
+// ── Navigasyon ──
+function goster(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item, .bnav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll(`[data-page="${id}"]`).forEach(b => b.classList.add('active'));
+  document.querySelector('.content').scrollTop = 0;
+}
+
+document.querySelectorAll('[data-page]').forEach(btn => {
+  btn.addEventListener('click', () => goster(btn.dataset.page));
+});
+
+// ── Header ──
+function renderHeader() {
+  const degisim = ((D.fiyat - D.onceki) / D.onceki * 100);
+  const el = document.getElementById('hdr-price');
+  el.textContent = D.fiyat.toFixed(2) + ' ₺';
+  el.classList.add('blink');
+  setTimeout(() => el.classList.remove('blink'), 300);
+
+  const chBadge = document.getElementById('hdr-change');
+  chBadge.textContent = (degisim >= 0 ? '+' : '') + degisim.toFixed(2) + '%';
+  chBadge.className = 'change-badge ' + (degisim >= 0 ? 'up' : 'down');
+
+  const dot = document.getElementById('borsa-dot');
+  dot.className = 'borsa-dot ' + (D.borsa_acik ? 'acik' : 'kapali');
+
+  // Ticker
+  document.getElementById('tk-rsi').textContent = D.rsi.toFixed(1);
+  document.getElementById('tk-macd').textContent = D.macd.toFixed(3);
+  document.getElementById('tk-ma20').textContent = D.ma20.toFixed(2) + '₺';
+  document.getElementById('tk-ma50').textContent = D.ma50.toFixed(2) + '₺';
+  document.getElementById('tk-hacim').textContent = (D.hacim / 1000).toFixed(0) + 'K';
+  document.getElementById('tk-bbu').textContent = D.bb_u.toFixed(2) + '₺';
+  document.getElementById('tk-bbl').textContent = D.bb_l.toFixed(2) + '₺';
+}
+
+// ── Confluence ──
+function renderConf() {
+  const al = D.conf_al, sat = D.conf_sat, top = al + sat;
+  const isAl = al >= 3 && al > sat;
+  const isSat = sat >= 3 && sat > al;
+  const renk = isAl ? 'var(--green)' : isSat ? 'var(--red)' : 'var(--text-dim)';
+  const verdict = isAl ? '🟢 GÜÇLÜ AL' : isSat ? '🔴 GÜÇLÜ SAT' : al > sat ? '🟡 ZAYIF AL' : sat > al ? '🟡 ZAYIF SAT' : '⚪ NÖTR';
+
+  // Arc
+  const arc = document.getElementById('conf-arc');
+  const circ = 2 * Math.PI * 30;
+  const pct = top > 0 ? al / (al + sat) : 0;
+  arc.style.strokeDashoffset = circ * (1 - pct);
+  arc.style.stroke = renk;
+
+  document.getElementById('conf-num').textContent = al;
+  document.getElementById('conf-num').style.color = renk;
+
+  const badge = document.getElementById('conf-badge');
+  badge.textContent = verdict;
+  badge.style.background = isAl ? 'var(--green-dim)' : isSat ? 'var(--red-dim)' : 'var(--surface2)';
+  badge.style.color = renk;
+
+  const sinyaller = [
+    { aktif: D.rsi < 35,     label: 'RSI Aşırı Satım (Günlük)' },
+    { aktif: D.macd > D.macd_sig, label: 'MACD AL Kesişimi' },
+    { aktif: D.fiyat < D.bb_l, label: 'Bollinger Alt Bant' },
+    { aktif: D.hacim > D.hacim_ort * 1.5, label: 'Yüksek Hacim Sinyali' },
+    { aktif: D.rsi > 65,     label: 'RSI Aşırı Alım' },
+  ];
+
+  document.getElementById('conf-signals').innerHTML =
+    `<div class="conf-verdict" style="color:${renk}">${verdict}</div>` +
+    sinyaller.map(s => `
+      <div class="signal-row ${s.aktif ? 'active' : ''}">
+        <div class="signal-dot" style="background:${s.aktif ? renk : 'var(--border2)'}"></div>
+        ${s.label}
+      </div>
+    `).join('');
+}
+
+// ── Zaman Dilimleri ──
+function renderTF() {
+  document.getElementById('tf-grid').innerHTML = D.tf.map(t => {
+    const cls  = t.sinyal === 'AL' ? 'al' : t.sinyal === 'SAT' ? 'sat' : 'notr';
+    const renk = t.sinyal === 'AL' ? 'var(--green)' : t.sinyal === 'SAT' ? 'var(--red)' : 'var(--text-dim)';
+    return `
+      <div class="tf-cell ${cls}">
+        <div class="tf-period">${t.ad}</div>
+        <div class="tf-signal" style="color:${renk}">${t.sinyal}</div>
+        <div class="tf-rsi">RSI ${t.rsi.toFixed(1)} · ${t.trend.split(' ')[0]}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── RSI ──
+function renderRSI() {
+  const r = D.rsi;
+  const renk = r < 35 ? 'var(--green)' : r > 65 ? 'var(--red)' : 'var(--blue)';
+  const status = r < 35 ? 'AŞIRI SATIM — AL SİNYALİ' : r > 65 ? 'AŞIRI ALIM — SAT SİNYALİ' : 'NORMAL BÖLGE';
+  const statusBg = r < 35 ? 'var(--green-dim)' : r > 65 ? 'var(--red-dim)' : 'var(--blue-dim)';
+
+  document.getElementById('rsi-val').textContent = r.toFixed(1);
+  document.getElementById('rsi-val').style.color = renk;
+  document.getElementById('rsi-fill').style.width = r + '%';
+  document.getElementById('rsi-fill').style.background = renk;
+  document.getElementById('rsi-needle').style.left = r + '%';
+  document.getElementById('rsi-status').textContent = status;
+  document.getElementById('rsi-status').style.background = statusBg;
+  document.getElementById('rsi-status').style.color = renk;
+  document.getElementById('rsi-badge').textContent = r.toFixed(1);
+}
+
+// ── MACD ──
+function renderMACD() {
+  const diff = D.macd - D.macd_sig;
+  const renk = diff > 0 ? 'var(--green)' : 'var(--red)';
+  const yon  = diff > 0 ? 'AL YÖNLİ' : 'SAT YÖNLİ';
+  document.getElementById('macd-badge').textContent = yon;
+  document.getElementById('macd-badge').style.color = renk;
+  document.getElementById('macd-badge').style.background = diff > 0 ? 'var(--green-dim)' : 'var(--red-dim)';
+  document.getElementById('macd-body').innerHTML = `
+    <div class="data-row">
+      <span class="data-label">MACD</span>
+      <span class="data-val" style="color:${renk}">${D.macd.toFixed(3)}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">SİNYAL</span>
+      <span class="data-val">${D.macd_sig.toFixed(3)}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">HİSTOGRAM</span>
+      <span class="data-val" style="color:${renk}">${diff.toFixed(3)}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">YÖN</span>
+      <span class="data-val" style="color:${renk}">${yon}</span>
+    </div>
+  `;
+}
+
+// ── MA & BB ──
+function renderMA() {
+  const f = D.fiyat;
+  const trend = D.ma20 > D.ma50 ? 'YÜKSELİŞ TRENDİ' : 'DÜŞÜŞ TRENDİ';
+  const tRenk = D.ma20 > D.ma50 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('ma-body').innerHTML = `
+    <div class="data-row">
+      <span class="data-label">MA 20</span>
+      <span class="data-val" style="color:${f > D.ma20 ? 'var(--green)' : 'var(--red)'}">${D.ma20.toFixed(2)} ₺</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">MA 50</span>
+      <span class="data-val" style="color:${f > D.ma50 ? 'var(--green)' : 'var(--red)'}">${D.ma50.toFixed(2)} ₺</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">BB ÜST BANT</span>
+      <span class="data-val">${D.bb_u.toFixed(2)} ₺</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">BB ALT BANT</span>
+      <span class="data-val">${D.bb_l.toFixed(2)} ₺</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">TREND</span>
+      <span class="data-val" style="color:${tRenk}">${trend}</span>
+    </div>
+  `;
+}
+
+// ── Seviyeler ──
+function renderSeviyeler() {
+  document.getElementById('seviye-body').innerHTML = D.seviyeler.map(s => {
+    const isD = s.tip === 'DESTEK';
+    const renk = isD ? 'var(--green)' : 'var(--red)';
+    const probPct = isD ? s.yuk : s.as;
+    const probLabel = isD ? `↑ %${s.yuk} yukarı döner` : `↓ %${s.as} aşağı döner`;
+    return `
+      <div class="level-item">
+        <div class="level-line" style="background:${renk}"></div>
+        <div class="level-info">
+          <div class="level-type" style="color:${renk}">${s.tip}</div>
+          <div class="level-price">${s.fiyat.toFixed(2)} ₺</div>
+          <div class="level-sub">${s.test} kez test · ${s.uzak >= 0 ? '+' : ''}${s.uzak.toFixed(1)}%</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--mono);font-size:16px;font-weight:600;color:${renk}">%${probPct}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">${probLabel}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Pattern ──
+function renderPattern() {
+  const p = D.pattern;
+  const diziHTML = p.dizi.map(c =>
+    `<div class="seq-arrow ${c==='U'?'u':'d'}">${c==='U'?'↑':'↓'}</div>`
+  ).join('<span class="seq-divider">›</span>');
+
+  document.getElementById('pat-badge').textContent = `${p.sayi} EŞLEŞME`;
+  document.getElementById('pattern-body').innerHTML = `
+    <p style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:6px;letter-spacing:1px">
+      SON ${p.dizi.length} GÜN HAREKETİ
+    </p>
+    <div class="pattern-seq">${diziHTML}</div>
+    <p style="font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:center;margin-bottom:12px">
+      Geçmişte <strong style="color:var(--text-bright)">${p.sayi} kez</strong> tekrarlandı
+    </p>
+    <div class="prob-bar">
+      <span class="prob-label" style="color:var(--green)">↑ Yukarı</span>
+      <div class="prob-track"><div class="prob-fill" style="width:${p.yuk}%;background:var(--green)"></div></div>
+      <span class="prob-pct" style="color:var(--green)">%${p.yuk.toFixed(1)}</span>
+    </div>
+    <div class="prob-bar">
+      <span class="prob-label" style="color:var(--red)">↓ Aşağı</span>
+      <div class="prob-track"><div class="prob-fill" style="width:${p.as}%;background:var(--red)"></div></div>
+      <span class="prob-pct" style="color:var(--red)">%${p.as.toFixed(1)}</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:8px;text-align:center">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:1px;margin-bottom:3px">ORT. YÜKSELİŞ</div>
+        <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--green)">+${p.yuk_ort}%</div>
+      </div>
+      <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:8px;text-align:center">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:1px;margin-bottom:3px">ORT. DÜŞÜŞ</div>
+        <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--red)">${p.as_ort}%</div>
+      </div>
+    </div>
+    <p style="font-family:var(--mono);font-size:8px;color:var(--text-dim);text-align:center;margin-top:8px">5 işlem günü baz alındı</p>
+  `;
+}
+
+// ── Senaryo ──
+function senaryoHesapla() {
+  const hedef = parseFloat(document.getElementById('sen-input').value.replace(',', '.'));
+  if (isNaN(hedef) || hedef <= 0) return;
+
+  const f = D.fiyat;
+  const dk = ((hedef - f) / f * 100);
+  const yon = dk >= 0 ? '↑ Yukarı' : '↓ Aşağı';
+  const renk = dk >= 0 ? 'var(--green)' : 'var(--red)';
+  const tahminiGun = (Math.abs(dk) / 1.8).toFixed(0);
+  const tahminiRSI = Math.min(100, Math.max(0, D.rsi + dk * 0.8)).toFixed(1);
+  const rsiUyari = tahminiRSI > 65 ? ' ⚠ AŞIRI ALIM' : tahminiRSI < 35 ? ' ⚠ AŞIRI SATIM' : '';
+  const rsiRenk = tahminiRSI > 65 ? 'var(--red)' : tahminiRSI < 35 ? 'var(--green)' : 'var(--text)';
+
+  // Hacim gücü (mock)
+  const hacimYeterli = D.hacim > D.hacim_ort;
+  const hacimCarpan  = (D.hacim / D.hacim_ort).toFixed(1);
+  const hacimRenk    = hacimYeterli ? 'var(--green)' : 'var(--gold)';
+  const hacimLabel   = hacimYeterli ? `✅ YETERLİ (${hacimCarpan}x)` : `⚠ DÜŞÜK (${hacimCarpan}x)`;
+
+  // Yakın seviye
+  const yakin = D.seviyeler
+    .map(s => ({...s, fark: Math.abs(s.fiyat - hedef) / hedef * 100}))
+    .sort((a,b) => a.fark - b.fark)[0];
+
+  document.getElementById('sen-result').innerHTML = `
+    <div style="border-top:1px solid var(--border);padding-top:10px">
+      <div class="data-row">
+        <span class="data-label">GÜNCEL FİYAT</span>
+        <span class="data-val">${f.toFixed(2)} ₺</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">HEDEF FİYAT</span>
+        <span class="data-val" style="color:${renk}">${hedef.toFixed(2)} ₺</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">HAREKET</span>
+        <span class="data-val" style="color:${renk}">${dk >= 0 ? '+' : ''}${dk.toFixed(2)}% ${yon}</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">TAHMİNİ SÜRE</span>
+        <span class="data-val">~${tahminiGun} işlem günü</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">TAHMİNİ RSI</span>
+        <span class="data-val" style="color:${rsiRenk}">${tahminiRSI}${rsiUyari}</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">HAClM GÜCÜ</span>
+        <span class="data-val" style="color:${hacimRenk}">${hacimLabel}</span>
+      </div>
+      ${yakin && yakin.fark <= 5 ? `
+      <div class="data-row">
+        <span class="data-label">YAKIN SEVİYE</span>
+        <span class="data-val" style="color:${yakin.tip==='DESTEK'?'var(--green)':'var(--red)'}">${yakin.tip}: ${yakin.fiyat.toFixed(2)} ₺</span>
+      </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+// ── Bildirim ekle ──
+function bildirimEkle(icon, title, body) {
+  const now = new Date().toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
+  bildirimler.unshift({icon, title, body, time: now});
+  renderBildirimler();
+  document.getElementById('notif-count').textContent = bildirimler.length + ' YENİ';
+}
+
+function renderBildirimler() {
+  const el = document.getElementById('notif-list');
+  if (!bildirimler.length) {
+    el.innerHTML = '<p style="font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:center;padding:20px 0">Henüz bildirim yok.</p>';
+    return;
+  }
+  el.innerHTML = bildirimler.map(n => `
+    <div class="notif-card">
+      <div class="notif-icon">${n.icon}</div>
+      <div>
+        <div class="notif-title">${n.title}</div>
+        <div class="notif-body">${n.body}</div>
+        <div class="notif-time">${n.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Fiyat simülasyonu (demo için) ──
+function fiyatGuncelle() {
+  D.onceki = D.fiyat;
+  D.fiyat += (Math.random() - 0.49) * 0.30;
+  D.fiyat = Math.round(D.fiyat * 100) / 100;
+  renderHeader();
+
+  // Rastgele demo bildirim
+  if (Math.random() < 0.15) {
+    const bildirimler_demo = [
+      {icon:'🟢', title:'AL SİNYALİ — RSI', body:`RSI ${(30+Math.random()*5).toFixed(1)} aşırı satım bölgesine girdi`},
+      {icon:'🔴', title:'SAT SİNYALİ — MACD', body:'MACD sinyal çizgisini aşağı kesti'},
+      {icon:'⚡', title:'Seviye Yakınlaşması', body:`Fiyat 80.40 ₺ destek seviyesine yaklaşıyor`},
+      {icon:'🚨', title:'Hacim Anomalisi', body:`Hacim normalin 3.2x üzerinde!`},
+    ];
+    const b = bildirimler_demo[Math.floor(Math.random()*bildirimler_demo.length)];
+    bildirimEkle(b.icon, b.title, b.body);
+  }
+}
+
+function renderHepsi() {
+  renderHeader();
+  renderConf();
+  renderTF();
+  renderRSI();
+  renderMACD();
+  renderMA();
+  renderSeviyeler();
+  renderPattern();
+}
+
+// ── İlk yükleme ──
+function init() {
+  gercekVeriYukle();
+}
+
+init();
 </script>
 </body>
 </html>
