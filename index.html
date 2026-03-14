@@ -986,7 +986,7 @@ const D = {
 };
 
 const bildirimler = [];
-
+const RAILWAY_URL = "https://web-production-17dfa.up.railway.app" ;
 // ── Yahoo Finance — çoklu proxy (biri çalışmazsa diğerini dener) ──
 const PROXIES = [
   url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
@@ -995,7 +995,7 @@ const PROXIES = [
 ];
 
 async function veriCek(interval, range) {
-  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/MAKTK.IS?interval=${interval}&range=${range}&events=history&includePrePost=false`;
+  const yahooUrl =`${RAILWAY_URL}/analiz?id=MAKTK.IS&interval=${interval}&range=${range}`;
 
   for (let i = 0; i < PROXIES.length; i++) {
     try {
