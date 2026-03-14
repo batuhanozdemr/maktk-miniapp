@@ -766,7 +766,7 @@ body {
         <span class="card-badge" id="conf-badge" style="background:var(--green-dim);color:var(--green)">HESAPLANIYOR</span>
       </div>
       <div class="card-body">
-        <div class="conf-layout" id="conf-layout-div">
+        <div class="conf-layout">
           <div class="conf-gauge">
             <svg viewBox="0 0 80 80">
               <circle class="conf-gauge-bg" cx="40" cy="40" r="30"/>
@@ -961,55 +961,36 @@ const D = {
 
 const bildirimler = [];
 
-// ── TEŞHİS MOTORLU VERİ ÇEKİCİ ──
+// ── TÜRKİYE İÇİN OPTİMİZE ÇİFT MOTORLU YAPI ──
 async function veriCek(interval, range) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/MAKTK.IS?interval=${interval}&range=${range}`;
-  const encoded = encodeURIComponent(url);
+  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/MAKTK.IS?interval=${interval}&range=${range}&events=history&nocache=${Date.now()}`;
   
-  // 3 Farklı Proxy deniyoruz, her birinin cevabını dinliyoruz
+  // Türkiye'deki internet sağlayıcılarının engellemediği 2 sağlam proxy:
   const proxies = [
-    { ad: 'PROXY-1', url: `https://api.allorigins.win/raw?url=${encoded}` },
-    { ad: 'PROXY-2', url: `https://api.codetabs.com/v1/proxy?quest=${encoded}` },
-    { ad: 'PROXY-3', url: `https://corsproxy.io/?${encoded}` }
+    `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(yahooUrl)}`
   ];
 
-  let debugText = ""; // Hataları buraya yazacağız
-
-  for (let p of proxies) {
+  for (let proxy of proxies) {
     try {
-      const res = await fetch(p.url);
-      if (!res.ok) { 
-        debugText += `[${p.ad}: HTTP ${res.status}] `; 
-        continue; 
-      }
+      const r = await fetch(proxy);
+      const j = await r.json();
+      if (!j.chart || !j.chart.result) continue; 
       
-      const text = await res.text();
-      try {
-        const j = JSON.parse(text);
-        if (j.chart && j.chart.result) {
-          // BAŞARILI! Veriyi döndür
-          const quotes = j.chart.result[0].indicators.quote[0];
-          return { 
-            meta: j.chart.result[0].meta, 
-            closes: quotes.close || [], 
-            highs: quotes.high || [],
-            lows: quotes.low || [],
-            volumes: quotes.volume || [], 
-            timestamps: j.chart.result[0].timestamp || [] 
-          };
-        } else {
-          debugText += `[${p.ad}: VERI YOK] `;
-        }
-      } catch(e) {
-        debugText += `[${p.ad}: JSON BOZUK] `;
-      }
+      const meta   = j.chart.result[0].meta;
+      const quotes = j.chart.result[0].indicators.quote[0];
+      const timestamps = j.chart.result[0].timestamp || [];
+      const closes  = quotes.close || [];
+      const highs   = quotes.high || [];
+      const lows    = quotes.low || [];
+      const volumes = quotes.volume || [];
+      
+      return { meta, closes, highs, lows, volumes, timestamps };
     } catch(e) {
-      debugText += `[${p.ad}: AĞ ENGELLENDİ] `;
+      console.warn('Proxy geçiliyor:', proxy);
     }
   }
-  
-  // Eğer hiçbiri çalışmazsa, hatayı geri gönderiyoruz ki ekrana basalım
-  return { hata: debugText }; 
+  return null; 
 }
 
 function hesaplaRSI(closes, period=14) {
@@ -1067,33 +1048,17 @@ async function gercekVeriYukle() {
 
   try {
     const gunluk = await veriCek('1d', '1y');
-    
-    // EĞER HATA VARSA EKRANA BAS
-    if (!gunluk || gunluk.hata) {
-      document.getElementById('hdr-price').textContent = 'SİSTEM DURDU';
-      document.getElementById('hdr-price').style.color = 'var(--red)';
-      document.getElementById('hdr-price').style.fontSize = '13px';
-      
-      document.getElementById('conf-badge').textContent = 'HATA BİLGİSİ';
-      document.getElementById('conf-badge').style.background = 'var(--red)';
-      document.getElementById('conf-badge').style.color = '#fff';
-      
-      const errorMessage = gunluk ? gunluk.hata : "Bilinmeyen bir sebeple bağlantı kesildi.";
-      
-      // Confluence (Skor) alanını tamamen hata raporu alanına çeviriyoruz
-      document.getElementById('conf-layout-div').innerHTML = `
-        <div style="color:var(--text-bright); font-family:var(--mono); font-size:12px; line-height:1.6; padding-right:10px;">
-          <b style="color:var(--red);">🚨 BAĞLANTI ENGELLENDİ</b><br><br>
-          <span style="color:var(--gold); font-size:10px;">GELEN RAPOR:</span><br>
-          <span style="color:var(--text-dim);">${errorMessage}</span>
-        </div>
-      `;
+    if (!gunluk) {
+      document.getElementById('hdr-price').textContent = 'API HATASI';
       return;
     }
 
     const closes  = gunluk.closes.filter(v => v != null);
     const volumes = gunluk.volumes.filter(v => v != null);
-    if(closes.length < 2) return;
+    if(closes.length < 2) {
+      document.getElementById('hdr-price').textContent = 'VERİ BOŞ';
+      return;
+    }
 
     D.fiyat   = closes[closes.length - 1];
     D.onceki  = closes[closes.length - 2];
@@ -1120,7 +1085,7 @@ async function gercekVeriYukle() {
     for (const tv of tfVeri) {
       try {
         const vd = await veriCek(tv.interval, tv.range);
-        if (!vd || vd.hata) continue;
+        if (!vd) continue;
         const c = vd.closes.filter(v => v != null);
         const rsi = hesaplaRSI(c);
         const ma20 = hesaplaSMA(c, 20);
@@ -1164,7 +1129,7 @@ async function gercekVeriYukle() {
     D.yuklendi = true;
     renderHepsi();
   } catch (error) {
-    document.getElementById('hdr-price').textContent = 'KOD HATASI';
+    document.getElementById('hdr-price').textContent = 'SİSTEM HATASI';
   }
 }
 
@@ -1211,7 +1176,6 @@ function renderConf() {
   const verdict = isAl ? '🟢 GÜÇLÜ AL' : isSat ? '🔴 GÜÇLÜ SAT' : al > sat ? '🟡 ZAYIF AL' : sat > al ? '🟡 ZAYIF SAT' : '⚪ NÖTR';
 
   const arc = document.getElementById('conf-arc');
-  if(!arc) return;
   const circ = 2 * Math.PI * 30;
   const pct = top > 0 ? al / (al + sat) : 0;
   arc.style.strokeDashoffset = circ * (1 - pct);
@@ -1240,3 +1204,232 @@ function renderConf() {
         <div class="signal-dot" style="background:${s.aktif ? renk : 'var(--border2)'}"></div>
         ${s.label}
       </div>
+    `).join('');
+}
+
+function renderTF() {
+  document.getElementById('tf-grid').innerHTML = D.tf.map(t => {
+    const cls  = t.sinyal === 'AL' ? 'al' : t.sinyal === 'SAT' ? 'sat' : 'notr';
+    const renk = t.sinyal === 'AL' ? 'var(--green)' : t.sinyal === 'SAT' ? 'var(--red)' : 'var(--text-dim)';
+    return `
+      <div class="tf-cell ${cls}">
+        <div class="tf-period">${t.ad}</div>
+        <div class="tf-signal" style="color:${renk}">${t.sinyal}</div>
+        <div class="tf-rsi">RSI ${t.rsi.toFixed(1)} · ${t.trend.split(' ')[0]}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderRSI() {
+  const r = D.rsi;
+  const renk = r < 35 ? 'var(--green)' : r > 65 ? 'var(--red)' : 'var(--blue)';
+  const status = r < 35 ? 'AŞIRI SATIM — AL SİNYALİ' : r > 65 ? 'AŞIRI ALIM — SAT SİNYALİ' : 'NORMAL BÖLGE';
+  const statusBg = r < 35 ? 'var(--green-dim)' : r > 65 ? 'var(--red-dim)' : 'var(--blue-dim)';
+
+  document.getElementById('rsi-val').textContent = r.toFixed(1);
+  document.getElementById('rsi-val').style.color = renk;
+  document.getElementById('rsi-fill').style.width = r + '%';
+  document.getElementById('rsi-fill').style.background = renk;
+  document.getElementById('rsi-needle').style.left = r + '%';
+  document.getElementById('rsi-status').textContent = status;
+  document.getElementById('rsi-status').style.background = statusBg;
+  document.getElementById('rsi-status').style.color = renk;
+  document.getElementById('rsi-badge').textContent = r.toFixed(1);
+}
+
+function renderMACD() {
+  const diff = D.macd - D.macd_sig;
+  const renk = diff > 0 ? 'var(--green)' : 'var(--red)';
+  const yon  = diff > 0 ? 'AL YÖNLİ' : 'SAT YÖNLİ';
+  document.getElementById('macd-badge').textContent = yon;
+  document.getElementById('macd-badge').style.color = renk;
+  document.getElementById('macd-badge').style.background = diff > 0 ? 'var(--green-dim)' : 'var(--red-dim)';
+  document.getElementById('macd-body').innerHTML = `
+    <div class="data-row">
+      <span class="data-label">MACD</span>
+      <span class="data-val" style="color:${renk}">${D.macd.toFixed(3)}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">SİNYAL</span>
+      <span class="data-val">${D.macd_sig.toFixed(3)}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">HİSTOGRAM</span>
+      <span class="data-val" style="color:${renk}">${diff.toFixed(3)}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">YÖN</span>
+      <span class="data-val" style="color:${renk}">${yon}</span>
+    </div>
+  `;
+}
+
+function renderMA() {
+  const f = D.fiyat;
+  const trend = D.ma20 > D.ma50 ? 'YÜKSELİŞ TRENDİ' : 'DÜŞÜŞ TRENDİ';
+  const tRenk = D.ma20 > D.ma50 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('ma-body').innerHTML = `
+    <div class="data-row">
+      <span class="data-label">MA 20</span>
+      <span class="data-val" style="color:${f > D.ma20 ? 'var(--green)' : 'var(--red)'}">${D.ma20.toFixed(2)} ₺</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">MA 50</span>
+      <span class="data-val" style="color:${f > D.ma50 ? 'var(--green)' : 'var(--red)'}">${D.ma50.toFixed(2)} ₺</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">BB ÜST BANT</span>
+      <span class="data-val">${D.bb_u.toFixed(2)} ₺</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">BB ALT BANT</span>
+      <span class="data-val">${D.bb_l.toFixed(2)} ₺</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">TREND</span>
+      <span class="data-val" style="color:${tRenk}">${trend}</span>
+    </div>
+  `;
+}
+
+function renderSeviyeler() {
+  document.getElementById('seviye-body').innerHTML = D.seviyeler.map(s => {
+    const isD = s.tip === 'DESTEK';
+    const renk = isD ? 'var(--green)' : 'var(--red)';
+    const probPct = isD ? s.yuk : s.as;
+    const probLabel = isD ? `↑ %${s.yuk} yukarı döner` : `↓ %${s.as} aşağı döner`;
+    return `
+      <div class="level-item">
+        <div class="level-line" style="background:${renk}"></div>
+        <div class="level-info">
+          <div class="level-type" style="color:${renk}">${s.tip}</div>
+          <div class="level-price">${s.fiyat.toFixed(2)} ₺</div>
+          <div class="level-sub">${s.test} kez test · ${s.uzak >= 0 ? '+' : ''}${s.uzak.toFixed(1)}%</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--mono);font-size:16px;font-weight:600;color:${renk}">%${probPct}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">${probLabel}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderPattern() {
+  const p = D.pattern;
+  const diziHTML = p.dizi.map(c =>
+    `<div class="seq-arrow ${c==='U'?'u':'d'}">${c==='U'?'↑':'↓'}</div>`
+  ).join('<span class="seq-divider">›</span>');
+
+  document.getElementById('pat-badge').textContent = `${p.sayi} EŞLEŞME`;
+  document.getElementById('pattern-body').innerHTML = `
+    <p style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:6px;letter-spacing:1px">
+      SON ${p.dizi.length} GÜN HAREKETİ
+    </p>
+    <div class="pattern-seq">${diziHTML}</div>
+    <p style="font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:center;margin-bottom:12px">
+      Geçmişte <strong style="color:var(--text-bright)">${p.sayi} kez</strong> tekrarlandı
+    </p>
+    <div class="prob-bar">
+      <span class="prob-label" style="color:var(--green)">↑ Yukarı</span>
+      <div class="prob-track"><div class="prob-fill" style="width:${p.yuk}%;background:var(--green)"></div></div>
+      <span class="prob-pct" style="color:var(--green)">%${p.yuk.toFixed(1)}</span>
+    </div>
+    <div class="prob-bar">
+      <span class="prob-label" style="color:var(--red)">↓ Aşağı</span>
+      <div class="prob-track"><div class="prob-fill" style="width:${p.as}%;background:var(--red)"></div></div>
+      <span class="prob-pct" style="color:var(--red)">%${p.as.toFixed(1)}</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:8px;text-align:center">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:1px;margin-bottom:3px">ORT. YÜKSELİŞ</div>
+        <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--green)">+${p.yuk_ort}%</div>
+      </div>
+      <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:8px;text-align:center">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:1px;margin-bottom:3px">ORT. DÜŞÜŞ</div>
+        <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--red)">${p.as_ort}%</div>
+      </div>
+    </div>
+    <p style="font-family:var(--mono);font-size:8px;color:var(--text-dim);text-align:center;margin-top:8px">5 işlem günü baz alındı</p>
+  `;
+}
+
+function senaryoHesapla() {
+  const hedef = parseFloat(document.getElementById('sen-input').value.replace(',', '.'));
+  if (isNaN(hedef) || hedef <= 0) return;
+
+  const f = D.fiyat;
+  const dk = ((hedef - f) / f * 100);
+  const yon = dk >= 0 ? '↑ Yukarı' : '↓ Aşağı';
+  const renk = dk >= 0 ? 'var(--green)' : 'var(--red)';
+  const tahminiGun = (Math.abs(dk) / 1.8).toFixed(0);
+  const tahminiRSI = Math.min(100, Math.max(0, D.rsi + dk * 0.8)).toFixed(1);
+  const rsiUyari = tahminiRSI > 65 ? ' ⚠ AŞIRI ALIM' : tahminiRSI < 35 ? ' ⚠ AŞIRI SATIM' : '';
+  const rsiRenk = tahminiRSI > 65 ? 'var(--red)' : tahminiRSI < 35 ? 'var(--green)' : 'var(--text)';
+
+  const hacimYeterli = D.hacim > D.hacim_ort;
+  const hacimCarpan  = (D.hacim / D.hacim_ort).toFixed(1);
+  const hacimRenk    = hacimYeterli ? 'var(--green)' : 'var(--gold)';
+  const hacimLabel   = hacimYeterli ? `✅ YETERLİ (${hacimCarpan}x)` : `⚠ DÜŞÜK (${hacimCarpan}x)`;
+
+  const yakin = D.seviyeler
+    .map(s => ({...s, fark: Math.abs(s.fiyat - hedef) / hedef * 100}))
+    .sort((a,b) => a.fark - b.fark)[0];
+
+  document.getElementById('sen-result').innerHTML = `
+    <div style="border-top:1px solid var(--border);padding-top:10px">
+      <div class="data-row">
+        <span class="data-label">GÜNCEL FİYAT</span>
+        <span class="data-val">${f.toFixed(2)} ₺</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">HEDEF FİYAT</span>
+        <span class="data-val" style="color:${renk}">${hedef.toFixed(2)} ₺</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">HAREKET</span>
+        <span class="data-val" style="color:${renk}">${dk >= 0 ? '+' : ''}${dk.toFixed(2)}% ${yon}</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">TAHMİNİ SÜRE</span>
+        <span class="data-val">~${tahminiGun} işlem günü</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">TAHMİNİ RSI</span>
+        <span class="data-val" style="color:${rsiRenk}">${tahminiRSI}${rsiUyari}</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">HAClM GÜCÜ</span>
+        <span class="data-val" style="color:${hacimRenk}">${hacimLabel}</span>
+      </div>
+      ${yakin && yakin.fark <= 5 ? `
+      <div class="data-row">
+        <span class="data-label">YAKIN SEVİYE</span>
+        <span class="data-val" style="color:${yakin.tip==='DESTEK'?'var(--green)':'var(--red)'}">${yakin.tip}: ${yakin.fiyat.toFixed(2)} ₺</span>
+      </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderHepsi() {
+  renderHeader();
+  renderConf();
+  renderTF();
+  renderRSI();
+  renderMACD();
+  renderMA();
+  renderSeviyeler();
+  renderPattern();
+}
+
+function init() {
+  gercekVeriYukle();
+  setInterval(gercekVeriYukle, 60000); 
+}
+
+init();
+</script>
+</body>
+</html>
