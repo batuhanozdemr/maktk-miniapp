@@ -1,11 +1,12 @@
 python-telegram-bot==20.7
 yfinance==0.2.36
-pandas==2.0.3
+pandas==2.1.4
 ta==0.11.0
 schedule==1.2.2
 pytz==2024.1
 flask==3.0.3
 flask-cors==4.0.1
 gunicorn==21.2.0
-numpy==1.24.4
+numpy==1.26.4
 requests==2.31.0
+setuptools==69.5.1
