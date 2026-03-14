@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>MAKTK</title>
+<title>MAKTK Panel</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -961,30 +961,38 @@ const D = {
 
 const bildirimler = [];
 
-// ── Yahoo Finance proxy API (Yeni ve Hızlı Proxy) ──
+// ── Çoklu Proxy Motoru (Asla Hata Vermez) ──
 async function veriCek(interval, range) {
-  try {
-    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/MAKTK.IS?interval=${interval}&range=${range}&events=history&nocache=${Date.now()}`;
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`;
-    
-    const r = await fetch(proxyUrl);
-    const j = await r.json();
-    
-    if (!j.chart || !j.chart.result) return null;
-    
-    const meta   = j.chart.result[0].meta;
-    const quotes = j.chart.result[0].indicators.quote[0];
-    const timestamps = j.chart.result[0].timestamp;
-    const closes  = quotes.close || [];
-    const highs   = quotes.high || [];
-    const lows    = quotes.low || [];
-    const volumes = quotes.volume || [];
-    
-    return { meta, closes, highs, lows, volumes, timestamps };
-  } catch(e) {
-    console.error('Veri çekme hatası:', e);
-    return null;
+  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/MAKTK.IS?interval=${interval}&range=${range}&events=history&nocache=${Date.now()}`;
+  const encodedUrl = encodeURIComponent(yahooUrl);
+
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodedUrl}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`,
+    `https://corsproxy.io/?${encodedUrl}`
+  ];
+
+  for (let proxy of proxies) {
+    try {
+      const r = await fetch(proxy);
+      if (!r.ok) continue; 
+      const j = await r.json();
+      if (!j.chart || !j.chart.result) continue; 
+      
+      const meta   = j.chart.result[0].meta;
+      const quotes = j.chart.result[0].indicators.quote[0];
+      const timestamps = j.chart.result[0].timestamp || [];
+      const closes  = quotes.close || [];
+      const highs   = quotes.high || [];
+      const lows    = quotes.low || [];
+      const volumes = quotes.volume || [];
+      
+      return { meta, closes, highs, lows, volumes, timestamps };
+    } catch(e) {
+      console.warn('Proxy geçiliyor:', proxy);
+    }
   }
+  return null; 
 }
 
 function hesaplaRSI(closes, period=14) {
@@ -1040,84 +1048,91 @@ function borsaAcikMi() {
 async function gercekVeriYukle() {
   if(!D.yuklendi) document.getElementById('hdr-price').textContent = 'Yükleniyor...';
 
-  const gunluk = await veriCek('1d', '1y');
-  if (!gunluk) {
-    document.getElementById('hdr-price').textContent = 'Hata!';
-    return;
-  }
-
-  const closes  = gunluk.closes.filter(v => v != null);
-  const volumes = gunluk.volumes.filter(v => v != null);
-  if(closes.length < 2) return;
-
-  D.fiyat   = closes[closes.length - 1];
-  D.onceki  = closes[closes.length - 2];
-  D.hacim   = volumes[volumes.length - 1];
-  D.hacim_ort = hesaplaSMA(volumes, 20);
-
-  D.rsi = hesaplaRSI(closes);
-  const macdR = hesaplaMACD(closes);
-  D.macd = macdR.macd; D.macd_sig = macdR.signal; D.macd_hist = macdR.hist;
-  D.ma20 = hesaplaSMA(closes, 20);
-  D.ma50 = hesaplaSMA(closes, 50);
-  const bb = hesaplaBollinger(closes);
-  D.bb_u = bb.upper; D.bb_l = bb.lower;
-  D.borsa_acik = borsaAcikMi();
-
-  const tfVeri = [
-    { ad:"Günlük",    interval:"1d",  range:"6mo"  },
-    { ad:"4 Saatlik", interval:"1h",  range:"30d"  },
-    { ad:"1 Saatlik", interval:"1h",  range:"7d"   },
-    { ad:"15 Dak.",   interval:"15m", range:"5d"   },
-  ];
-
-  D.tf = [];
-  for (const tv of tfVeri) {
-    try {
-      const vd = await veriCek(tv.interval, tv.range);
-      if (!vd) continue;
-      const c = vd.closes.filter(v => v != null);
-      const rsi = hesaplaRSI(c);
-      const ma20 = hesaplaSMA(c, 20);
-      const ma50 = hesaplaSMA(c, Math.min(50, c.length - 1));
-      const macdTf = hesaplaMACD(c);
-      const al  = (rsi && rsi < 35) || (macdTf.macd && macdTf.macd > macdTf.signal) ? 1 : 0;
-      const sat = (rsi && rsi > 65) || (macdTf.macd && macdTf.macd < macdTf.signal) ? 1 : 0;
-      D.tf.push({
-        ad: tv.ad,
-        rsi: rsi || 50,
-        sinyal: al > sat ? "AL" : sat > al ? "SAT" : "NÖTR",
-        trend: (ma20 && ma50) ? (ma20 > ma50 ? "YÜKSELİŞ" : "DÜŞÜŞ") : "YATAY",
-      });
-    } catch(e) { }
-  }
-
-  D.conf_al  = D.tf.filter(t => t.sinyal === "AL").length;
-  D.conf_sat = D.tf.filter(t => t.sinyal === "SAT").length;
-  if (D.rsi && D.rsi < 35) D.conf_al++;
-  if (D.rsi && D.rsi > 65) D.conf_sat++;
-
-  D.seviyeler = [];
-  const c = closes;
-  for (let i = 2; i < c.length - 2; i++) {
-    if (c[i] > c[i-1] && c[i] > c[i-2] && c[i] > c[i+1] && c[i] > c[i+2]) {
-      D.seviyeler.push({ tip:"DİRENÇ", fiyat:c[i], test:1, yuk:35, as:65, uzak: (c[i]-D.fiyat)/D.fiyat*100 });
+  try {
+    const gunluk = await veriCek('1d', '1y');
+    if (!gunluk) {
+      document.getElementById('hdr-price').textContent = 'API HATASI';
+      return;
     }
-    if (c[i] < c[i-1] && c[i] < c[i-2] && c[i] < c[i+1] && c[i] < c[i+2]) {
-      D.seviyeler.push({ tip:"DESTEK", fiyat:c[i], test:1, yuk:68, as:32, uzak: (c[i]-D.fiyat)/D.fiyat*100 });
+
+    const closes  = gunluk.closes.filter(v => v != null);
+    const volumes = gunluk.volumes.filter(v => v != null);
+    if(closes.length < 2) {
+      document.getElementById('hdr-price').textContent = 'VERİ BOŞ';
+      return;
     }
+
+    D.fiyat   = closes[closes.length - 1];
+    D.onceki  = closes[closes.length - 2];
+    D.hacim   = volumes[volumes.length - 1];
+    D.hacim_ort = hesaplaSMA(volumes, 20);
+
+    D.rsi = hesaplaRSI(closes);
+    const macdR = hesaplaMACD(closes);
+    D.macd = macdR.macd; D.macd_sig = macdR.signal; D.macd_hist = macdR.hist;
+    D.ma20 = hesaplaSMA(closes, 20);
+    D.ma50 = hesaplaSMA(closes, 50);
+    const bb = hesaplaBollinger(closes);
+    D.bb_u = bb.upper; D.bb_l = bb.lower;
+    D.borsa_acik = borsaAcikMi();
+
+    const tfVeri = [
+      { ad:"Günlük",    interval:"1d",  range:"6mo"  },
+      { ad:"4 Saatlik", interval:"1h",  range:"30d"  },
+      { ad:"1 Saatlik", interval:"1h",  range:"7d"   },
+      { ad:"15 Dak.",   interval:"15m", range:"5d"   },
+    ];
+
+    D.tf = [];
+    for (const tv of tfVeri) {
+      try {
+        const vd = await veriCek(tv.interval, tv.range);
+        if (!vd) continue;
+        const c = vd.closes.filter(v => v != null);
+        const rsi = hesaplaRSI(c);
+        const ma20 = hesaplaSMA(c, 20);
+        const ma50 = hesaplaSMA(c, Math.min(50, c.length - 1));
+        const macdTf = hesaplaMACD(c);
+        const al  = (rsi && rsi < 35) || (macdTf.macd && macdTf.macd > macdTf.signal) ? 1 : 0;
+        const sat = (rsi && rsi > 65) || (macdTf.macd && macdTf.macd < macdTf.signal) ? 1 : 0;
+        D.tf.push({
+          ad: tv.ad,
+          rsi: rsi || 50,
+          sinyal: al > sat ? "AL" : sat > al ? "SAT" : "NÖTR",
+          trend: (ma20 && ma50) ? (ma20 > ma50 ? "YÜKSELİŞ" : "DÜŞÜŞ") : "YATAY",
+        });
+      } catch(e) { }
+    }
+
+    D.conf_al  = D.tf.filter(t => t.sinyal === "AL").length;
+    D.conf_sat = D.tf.filter(t => t.sinyal === "SAT").length;
+    if (D.rsi && D.rsi < 35) D.conf_al++;
+    if (D.rsi && D.rsi > 65) D.conf_sat++;
+
+    D.seviyeler = [];
+    const c = closes;
+    for (let i = 2; i < c.length - 2; i++) {
+      if (c[i] > c[i-1] && c[i] > c[i-2] && c[i] > c[i+1] && c[i] > c[i+2]) {
+        D.seviyeler.push({ tip:"DİRENÇ", fiyat:c[i], test:1, yuk:35, as:65, uzak: (c[i]-D.fiyat)/D.fiyat*100 });
+      }
+      if (c[i] < c[i-1] && c[i] < c[i-2] && c[i] < c[i+1] && c[i] < c[i+2]) {
+        D.seviyeler.push({ tip:"DESTEK", fiyat:c[i], test:1, yuk:68, as:32, uzak: (c[i]-D.fiyat)/D.fiyat*100 });
+      }
+    }
+    D.seviyeler = D.seviyeler.sort((a,b) => Math.abs(a.uzak) - Math.abs(b.uzak)).slice(0, 4);
+
+    const son3 = closes.slice(-4);
+    D.pattern.dizi = [
+      son3[1] > son3[0] ? "U" : "D",
+      son3[2] > son3[1] ? "U" : "D",
+      son3[3] > son3[2] ? "U" : "D",
+    ];
+
+    D.yuklendi = true;
+    renderHepsi();
+  } catch (error) {
+    document.getElementById('hdr-price').textContent = 'SİSTEM HATASI';
   }
-  D.seviyeler = D.seviyeler.sort((a,b) => Math.abs(a.uzak) - Math.abs(b.uzak)).slice(0, 4);
-
-  const son3 = closes.slice(-4);
-  D.pattern.dizi = [
-    son3[1] > son3[0] ? "U" : "D",
-    son3[2] > son3[1] ? "U" : "D",
-    son3[3] > son3[2] ? "U" : "D",
-  ];
-
-  D.yuklendi = true;
-  renderHepsi();
 }
 
 function goster(id) {
