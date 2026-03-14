@@ -961,38 +961,34 @@ const D = {
 
 const bildirimler = [];
 
-// ── Çoklu Proxy Motoru (Asla Hata Vermez) ──
+// ── GÜÇLENDİRİLMİŞ API MOTORU (AllOrigins Wrapper) ──
 async function veriCek(interval, range) {
-  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/MAKTK.IS?interval=${interval}&range=${range}&events=history&nocache=${Date.now()}`;
-  const encodedUrl = encodeURIComponent(yahooUrl);
-
-  const proxies = [
-    `https://api.allorigins.win/raw?url=${encodedUrl}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`,
-    `https://corsproxy.io/?${encodedUrl}`
-  ];
-
-  for (let proxy of proxies) {
-    try {
-      const r = await fetch(proxy);
-      if (!r.ok) continue; 
-      const j = await r.json();
-      if (!j.chart || !j.chart.result) continue; 
-      
-      const meta   = j.chart.result[0].meta;
-      const quotes = j.chart.result[0].indicators.quote[0];
-      const timestamps = j.chart.result[0].timestamp || [];
-      const closes  = quotes.close || [];
-      const highs   = quotes.high || [];
-      const lows    = quotes.low || [];
-      const volumes = quotes.volume || [];
-      
-      return { meta, closes, highs, lows, volumes, timestamps };
-    } catch(e) {
-      console.warn('Proxy geçiliyor:', proxy);
-    }
+  try {
+    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/MAKTK.IS?interval=${interval}&range=${range}&events=history`;
+    // Veriyi direkt değil, bir "kutu" içinde gizleyerek çekiyoruz
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}`;
+    
+    const r = await fetch(proxyUrl);
+    const data = await r.json();
+    
+    // Kutunun (contents) içindeki asıl borsa verisini açıyoruz
+    const j = JSON.parse(data.contents);
+    
+    if (!j.chart || !j.chart.result) return null;
+    
+    const meta   = j.chart.result[0].meta;
+    const quotes = j.chart.result[0].indicators.quote[0];
+    const timestamps = j.chart.result[0].timestamp || [];
+    const closes  = quotes.close || [];
+    const highs   = quotes.high || [];
+    const lows    = quotes.low || [];
+    const volumes = quotes.volume || [];
+    
+    return { meta, closes, highs, lows, volumes, timestamps };
+  } catch(e) {
+    console.error('Bağlantı Hatası:', e);
+    return null;
   }
-  return null; 
 }
 
 function hesaplaRSI(closes, period=14) {
